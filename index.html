@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#121411" />
+  <meta name="description" content="Static artwork and G-code generator for pen plotters." />
+  <title>PlotGenerator</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><b>PG</b><span><strong>PlotGenerator</strong><small>Static artwork to plotter pipeline</small></span></div>
+    <nav><button data-tab="image" class="active">Image Trace</button><button data-tab="pattern">Pattern Lab</button><button data-tab="machine">Machine / G-code</button></nav>
+  </header>
+  <main class="layout">
+    <aside class="sidebar">
+      <section class="panel">
+        <h2>Page</h2>
+        <div class="grid2"><label>Width mm<input id="pageW" type="number" value="297"></label><label>Height mm<input id="pageH" type="number" value="210"></label></div>
+        <label>Margin mm<input id="margin" type="number" value="12"></label>
+        <div class="grid2"><label><input id="grid" type="checkbox" checked> Show grid</label><label><input id="travel" type="checkbox"> Show travel</label></div>
+        <label>Stroke width<input id="stroke" type="number" step="0.05" value="0.28"></label>
+      </section>
+      <section id="imagePanel" class="panel tool-panel">
+        <h2>Image Trace</h2>
+        <label class="drop"><input id="file" type="file" accept="image/png,image/jpeg,image/svg+xml"><strong id="fileName">Upload PNG, SVG, or JPEG</strong><span>Drop artwork here or browse locally.</span></label>
+        <label>Algorithm<select id="algo"><option value="hatch">Directional hatch</option><option value="crosshatch">Cross-hatch</option><option value="contour">Threshold contours</option><option value="edge">Sobel edge lines</option><option value="scanline">Displaced scanlines</option><option value="stipple">Stipple dots</option></select></label>
+        <div class="grid2"><label>Passes<input id="passes" type="number" min="1" max="5" value="1"></label><label>Resolution<input id="res" type="number" min="80" max="900" step="20" value="420"></label></div>
+        <div class="grid2"><label>Threshold<input id="thr" type="number" min="0" max="255" value="138"></label><label>Edge threshold<input id="edgeThr" type="number" min="0" max="255" value="72"></label></div>
+        <div class="grid2"><label>Blur<input id="blur" type="number" min="0" max="12" value="1"></label><label>Contrast<input id="contrast" type="number" step="0.05" value="1.15"></label></div>
+        <div class="grid2"><label>Spacing<input id="spacing" type="number" step="0.5" value="5"></label><label>Angle<input id="angle" type="number" value="-35"></label></div>
+        <div class="grid2"><label>Simplify<input id="simplify" type="number" step="0.05" value="0.45"></label><label>Smoothing<input id="smooth" type="number" min="0" max="3" value="1"></label></div>
+        <div class="grid2"><label>Scale %<input id="scale" type="number" value="92"></label><label>Rotation<input id="rot" type="number" value="0"></label></div>
+        <div class="grid2"><label>Offset X<input id="offX" type="number" value="0"></label><label>Offset Y<input id="offY" type="number" value="0"></label></div>
+        <label><input id="invert" type="checkbox"> Invert luminance</label>
+        <label><input id="paper" type="checkbox" checked> Treat lightest colour as paper</label>
+        <label><input id="optimise" type="checkbox" checked> Optimise travel</label>
+        <div id="passColours"></div>
+      </section>
+      <section id="patternPanel" class="panel tool-panel hidden">
+        <h2>Pattern Lab</h2>
+        <label>Generator<select id="patKind"><option value="waves">Wave field</option><option value="flow">Flow field</option><option value="spiral">Layered spiral</option><option value="topo">Topographic rings</option></select></label>
+        <div class="grid2"><label>Seed<input id="seed" type="number" value="1337"></label><label>Lines<input id="lines" type="number" value="34"></label></div>
+        <div class="grid2"><label>Spacing<input id="pSpacing" type="number" step="0.5" value="5"></label><label>Amplitude<input id="amp" type="number" step="0.5" value="12"></label></div>
+        <div class="grid2"><label>Frequency<input id="freq" type="number" step="0.1" value="3.3"></label><label>Turns<input id="turns" type="number" value="8"></label></div>
+        <label>Complexity<input id="complex" type="number" step="0.05" value="1.2"></label>
+        <label>Ink colour<input id="patColour" type="color" value="#181b15"></label>
+      </section>
+      <section class="panel">
+        <h2>G-code</h2>
+        <label>Export pass<select id="gPass"><option value="all">All enabled passes</option></select></label>
+        <div class="actions"><button id="downloadG">Download G-code</button><button id="downloadSvg">Download SVG</button></div>
+        <details><summary>Machine profile</summary>
+          <div class="grid2"><label>Draw feed<input id="drawF" type="number" value="1800"></label><label>Travel feed<input id="travF" type="number" value="4200"></label></div>
+          <label>Origin<select id="origin"><option value="top-left">Top-left</option><option value="bottom-left">Bottom-left</option><option value="centre">Centre</option></select></label>
+          <label>Pen up<textarea id="penUp">M5</textarea></label><label>Pen down<textarea id="penDown">M3 S1000</textarea></label>
+          <label>Start<textarea id="startCmd">G21
+G90
+M5</textarea></label><label>End<textarea id="endCmd">M5
+G0 X0 Y0</textarea></label>
+        </details>
+        <textarea id="gcode" readonly></textarea>
+      </section>
+    </aside>
+    <section class="stage">
+      <div class="preview-head"><strong id="docName">sample-landscape</strong><span id="stats"></span></div>
+      <div class="canvas"><svg id="svg" role="img" aria-label="Plot preview"></svg></div>
+      <div class="inspector"><div><b>Pipeline</b><span id="pipe">Image trace</span></div><div><b>Passes</b><span id="passCount">1</span></div><div><b>Travel</b><span id="travelStat">0 m</span></div><div><b>Warnings</b><span id="warnings">None</span></div></div>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
