@@ -1,49 +1,88 @@
 # PlotGenerator
 
-A static browser application for generating artwork and G-code for pen plotters.
+PlotGenerator is a dependency-free static browser application for turning imported artwork and generated line systems into SVG and G-code files for pen plotters.
 
-The app runs entirely client-side. Imported PNG, JPEG, and SVG files are decoded in the browser and are not uploaded to a server.
+All image decoding, vector generation, previewing, and export happen in the browser. Imported images are not uploaded to a service.
 
-## Current functionality
+## Implemented functionality
 
-- Image import for PNG, JPEG, and SVG.
-- Large SVG preview with paper bounds, millimetre grid, margin overlay, source-image overlay, pass colours, and optional travel moves.
-- Image-to-plot algorithms:
-  - threshold contours;
-  - Sobel-style edge lines;
-  - directional hatching;
-  - cross-hatching;
-  - displaced scanlines;
-  - stipple dots.
-- Single-pen output and multi-colour pass generation using browser-side colour clustering.
-- Per-pass colour selection for pen assignment.
-- Page, placement, threshold, blur, contrast, spacing, angle, smoothing, and simplification controls.
-- Pattern Lab with deterministic wave fields, flow fields, layered spirals, and topographic rings.
-- SVG export.
-- Configurable G-code export with editable start, end, pen-up, and pen-down commands.
-- Path, point, travel, drawing-distance, and estimated-time statistics.
+### Image Trace
 
-Direct plotter communication is not included in this version. The app generates downloadable files only.
+Import PNG, JPEG, or SVG artwork and rebuild it with six plotter-oriented methods:
+
+- directional hatching;
+- cross-hatching;
+- threshold contours;
+- Sobel edge centre-lines;
+- displaced scanlines;
+- stipple dots.
+
+The configuration panel includes working resolution, threshold, edge sensitivity, blur, contrast, spacing, angle, smoothing, Ramer-Douglas-Peucker simplification, minimum path length, inversion, page placement, rotation, and nearest-neighbour travel optimisation.
+
+### Colour passes
+
+Images can be quantised into up to five browser-generated colour passes. The lightest cluster can be treated as the paper, neighbouring colour regions can overlap, and every generated pass has an independent enable switch and pen colour.
+
+### Pattern Lab
+
+Pattern Lab produces deterministic line artwork from a numeric seed:
+
+- wave fields;
+- flow fields;
+- layered spirals;
+- topographic rings;
+- Lissajous weaves.
+
+### Preview and export
+
+The SVG workspace shows page and margin bounds, an optional millimetre grid, source-artwork overlay, pass colours, and optional pen-up travel lines. It reports path count, point count, drawing distance, travel distance, and an approximate plot duration.
+
+Exports include:
+
+- layered SVG;
+- configurable G-code for all enabled passes or one selected pass.
+
+The machine profile supports coordinate origin, X/Y inversion, feed rates, pen delay estimates, numeric precision, and editable start, pen-up, pen-down, inter-pass, and end commands.
+
+Direct plotter communication is deliberately out of scope. PlotGenerator generates files only.
+
+## Local development
+
+No package installation or build step is required. Serve the repository root with any local HTTP server, for example:
+
+```bash
+python3 -m http.server 8080
+```
+
+Then open `http://localhost:8080`.
+
+Validation:
+
+```bash
+for file in app/*.js; do node --check "$file"; done
+node tests/smoke.mjs
+```
 
 ## Deployment
 
-This is a no-build static site. The GitHub Pages workflow in `.github/workflows/pages.yml` uploads the repository root as the Pages artifact on every push to `main`.
+`.github/workflows/pages.yml` validates the JavaScript and deploys the static application through GitHub Pages after every push to `main`.
 
-The repository must be configured to use **GitHub Actions** as its Pages source.
+The repository must use **GitHub Actions** as its Pages deployment source.
 
 ## G-code caution
 
-The default profile uses generic GRBL-style pen commands:
+The default machine profile uses generic GRBL-style commands:
 
 ```gcode
 M5
 M3 S1000
 ```
 
-Review the machine profile before running generated files on hardware. Test with the pen lifted or removed first.
+Pen-control conventions vary between plotters. Review generated output, adapt the profile to the target firmware, and test with the pen lifted or removed before running hardware.
 
-## Notes
+## Current constraints
 
-- SVG imports are currently rasterised before tracing. Native SVG path preservation can be added later as a separate pipeline.
-- Browser processing is bounded by a configurable working resolution to avoid excessive UI blocking.
-- Path optimisation uses a nearest-neighbour ordering strategy for moderate documents.
+- SVG imports are sanitised and rasterised before tracing; original SVG path preservation is a future pipeline.
+- Image processing runs on the browser main thread and is bounded to a 720-pixel working dimension.
+- Multi-colour separation is an approximate perceptual clustering workflow, not print-production colour management.
+- The on-screen preview is capped for responsiveness when a document is extremely large; exported geometry remains complete.
