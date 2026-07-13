@@ -46,29 +46,6 @@ The machine profile supports coordinate origin, X/Y inversion, feed rates, pen d
 
 Direct plotter communication is deliberately out of scope. PlotGenerator generates files only.
 
-## Local development
-
-No package installation or build step is required. Serve the repository root with any local HTTP server, for example:
-
-```bash
-python3 -m http.server 8080
-```
-
-Then open `http://localhost:8080`.
-
-Validation:
-
-```bash
-for file in app/*.js; do node --check "$file"; done
-node tests/smoke.mjs
-```
-
-## Deployment
-
-`.github/workflows/pages.yml` validates the JavaScript and deploys the static application through GitHub Pages after every push to `main`.
-
-The repository must use **GitHub Actions** as its Pages deployment source.
-
 ## G-code caution
 
 The default machine profile uses generic GRBL-style commands:
